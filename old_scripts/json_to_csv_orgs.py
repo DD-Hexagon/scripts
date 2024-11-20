@@ -8,7 +8,7 @@ columns = [
 ]
 
 # Load the data from the JSON file
-with open('clipperOrgs.json', 'r', encoding='utf-8') as file:
+with open('Clipper Dev ring Org list 1.json', 'r', encoding='utf-8') as file:
     data = json.load(file)
 
 # Open the CSV file to write data
@@ -17,7 +17,7 @@ with open('orgs.csv', 'w', newline='', encoding='utf-8') as csvfile:
     writer.writeheader()
 
     # Loop through each organization in the data
-    for org in data["value"]:
+    for org in data:
         csv_row = {
             "Organization ID": org.get("Id", ""),
             "Name": org.get("Name", ""),

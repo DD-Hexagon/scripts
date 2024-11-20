@@ -3,7 +3,7 @@ import json
 with open('backup.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
-keys_to_extract = ["Applications", "Groups", "Users", "AuthorizationServers", "ApplicationGroupAssignments", "UserGroupAssignments"]
+keys_to_extract = ["Applications", "Groups", "Users", "AuthorizationServers"]
 
 for key in keys_to_extract:
     if key in data:

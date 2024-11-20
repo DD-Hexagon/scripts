@@ -43,7 +43,21 @@ def extract_name_from_email(email):
             return first_name.capitalize(), last_name.upper()
     return email.split('@')[0].capitalize(), email.split('@')[0].upper()  # Return the name before @ if no dot
 
-def process_json_to_csv(json_file, csv_file, org_mapping, clipper_org_mapping, excluded_logins):
+def load_tenant_mapping(clipper_tenants_file):
+    # Load tenant mapping from clipper tenants JSON.
+    with open(clipper_tenants_file, 'r', encoding='utf-8') as file:
+        tenants_data = json.load(file)
+
+    # Mapping from TenantId to TenantName
+    tenant_mapping = {}
+    for tenant in tenants_data['value']:
+        tenant_id = tenant.get("Id")
+        tenant_name = tenant.get("Name")
+        if tenant_id and tenant_name:
+            tenant_mapping[tenant_id] = tenant_name  # Map tenant ID to tenant name
+    return tenant_mapping
+
+def process_json_to_csv(json_file, csv_file, org_mapping, clipper_org_mapping, excluded_logins, tenant_mapping):
     with open(json_file, 'r', encoding='utf-8') as file:
         user_data = json.load(file)
 
@@ -51,21 +65,21 @@ def process_json_to_csv(json_file, csv_file, org_mapping, clipper_org_mapping, e
         user_data = [user_data]  
 
     columns = [
-        "First Name",
-        "Last Name",
-        "Description",
+        # "First Name",
+        # "Last Name",
+        # "Description",
         "Login name",
-        "E-mail address",
-        "Provider Type",
-        "Application Admin",
-        "Organization Admin",
-        "System Admin",
-        "Tenant Admin",
-        "User Admin",
-        "Organization",
-        "Group",
-        "Product",
-        "Status"
+        # "E-mail address",
+        # "Provider Type",
+        # "Application Admin",
+        # "Organization Admin",
+        # "System Admin",
+        # "Tenant Admin",
+        # "User Admin",
+        # "Organization",
+        "Tenant",
+        # "Product",
+        # "Status"
     ]
 
     with open(csv_file, 'w', newline='', encoding='utf-8') as csvfile:
@@ -92,26 +106,13 @@ def process_json_to_csv(json_file, csv_file, org_mapping, clipper_org_mapping, e
 
                 # Parse admin roles from comma-separated string
                 admin_roles_str = item.get("AdminRoles", "")
-                if "All" in admin_roles_str:
-                    admin_roles = {
-                        "Application Admin": True,
-                        "Organization Admin": True,
-                        "System Admin": True,
-                        "Tenant Admin": True,
-                        "User Admin": True
-                    }
-                else:
-                 # Define each role individually if "ALL" is not present
-                    admin_roles = {
-                        "Application Admin": "ApplicationAdministrator" in admin_roles_str,
-                        "Organization Admin": "OrganizationAdministrator" in admin_roles_str,
-                        "System Admin": "SystemAdministrator" in admin_roles_str,
-                        "Tenant Admin": "TenantAdministrator" in admin_roles_str,
-                        "User Admin": "UserAdministrator" in admin_roles_str
-                    }
-
-                # Convert groups to comma-separated string if needed
-                groups = ','.join(item.get("GroupIds", [])) if item.get("GroupIds") else ""
+                admin_roles = {
+                    "Application Admin": "ApplicationAdministrator" in admin_roles_str,
+                    "Organization Admin": "OrganizationAdministrator" in admin_roles_str,
+                    "System Admin": "SystemAdministrator" in admin_roles_str,
+                    "Tenant Admin": "TenantAdministrator" in admin_roles_str,
+                    "User Admin": "UserAdministrator" in admin_roles_str,
+                }
 
                 # Retrieve organization name using OrganizationId
                 organization_id = item.get("OrganizationId", "")
@@ -119,41 +120,46 @@ def process_json_to_csv(json_file, csv_file, org_mapping, clipper_org_mapping, e
                 clipper_org_name = clipper_org_mapping.get(organization_id, "")
                 final_org_name = organization_name if organization_name else clipper_org_name
 
-                # Only write row if either organization_name or clipper_org_name is found
-                if clipper_org_name:
-                    csv_row = {
-                        "First Name": first_name,
-                        "Last Name": last_name,
-                        "Description": (item.get("Description") or "").strip(),
-                        "Login name": login_name,
-                        "E-mail address": email,
-                        "Provider Type": "Federation",
-                        "Status": "ACTIVE" if item.get("IsActive") else "INACTIVE",
-                        "Product": "SDx MT Cloud",
-                        "Application Admin": admin_roles.get("Application Admin", False),
-                        "Organization Admin": admin_roles.get("Organization Admin", False),
-                        "System Admin": admin_roles.get("System Admin", False),
-                        "Tenant Admin": admin_roles.get("Tenant Admin", False),
-                        "User Admin": admin_roles.get("User Admin", False),
-                        "Organization": clipper_org_name,
-                        "Group": groups,
-                    }
+                # Process each tenant separately, creating a new row for each tenant per user
+                for tenant_id in item.get("TenantIds", []):
+                    tenant_name = tenant_mapping.get(tenant_id)
+                    # Only write row if either organization_name or clipper_org_name is found
+                    if final_org_name and tenant_name:
+                        csv_row = {
+                            # "First Name": first_name,
+                            # "Last Name": last_name,
+                            # "Description": (item.get("Description") or "").strip(),
+                            "Login name": "USR_"+ login_name,
+                            # "E-mail address": email,
+                            # "Provider Type": "Federation",
+                            # "Status": "ACTIVE" if item.get("IsActive") else "INACTIVE",
+                            # "Product": "SDx MT Cloud",
+                            # "Application Admin": admin_roles.get("Application Admin", False),
+                            # "Organization Admin": admin_roles.get("Organization Admin", False),
+                            # "System Admin": admin_roles.get("System Admin", False),
+                            # "Tenant Admin": admin_roles.get("Tenant Admin", False),
+                            # "User Admin": admin_roles.get("User Admin", False),
+                            # "Organization": final_org_name,
+                            "Tenant": "CTN_" + tenant_name
+                        }
 
-                    writer.writerow(csv_row)
+                        writer.writerow(csv_row)
 
 # File paths
 json_file = 'users.json'
-csv_file = 'users.csv'
+csv_file = 'users_with_tenants.csv'
 auth_server_file = 'authorizationservers.json'
 clipper_organizations = 'clipperOrgs.json'
+clipper_tenants_file = 'clipperTenants.json'
 my_users_file = 'myUsers.json'
 
 # Load organization mappings
 org_mapping = load_organization_mapping(auth_server_file)
 clipper_orgs_mapping = load_clipper_organization_mapping(clipper_organizations)
+tenant_mapping = load_tenant_mapping(clipper_tenants_file)
 
 # Load excluded logins
 excluded_logins = load_excluded_logins(my_users_file)
 
 # Process data and write to CSV
-process_json_to_csv(json_file, csv_file, org_mapping, clipper_orgs_mapping, excluded_logins)
+process_json_to_csv(json_file, csv_file, org_mapping, clipper_orgs_mapping, excluded_logins, tenant_mapping)

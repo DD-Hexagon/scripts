@@ -2,15 +2,15 @@ import csv
 import json
 
 # Load the tenant data from the JSON file
-with open('clipperTenants.json', 'r') as file:
+with open('Clipper Dev ring Tenant list 1.json', 'r') as file:
     tenant_data = json.load(file)
 
 # Load the organization data from the JSON file
-with open('clipperOrgs.json', 'r') as file:
+with open('Clipper Dev ring Org list 1.json', 'r') as file:
     org_data = json.load(file)
 
 # Create a dictionary to map organization IDs to organization names
-org_dict = {org['Id']: org['Name'] for org in org_data['value']}
+org_dict = {org['Id']: org['Name'] for org in org_data}
 
 columns = [
     "Tenant ID","Name", "Description", "Organization", "Product", "Product Version",
@@ -22,7 +22,7 @@ with open('tenants.csv', 'w', newline='') as csvfile:
     writer = csv.DictWriter(csvfile, fieldnames=columns)
     writer.writeheader()
 
-    for tenant in tenant_data['value']:
+    for tenant in tenant_data:
         region = tenant.get("Region", "")
         hosting_group = ""
         if region == "Central US":

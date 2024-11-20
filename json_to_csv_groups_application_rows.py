@@ -98,7 +98,7 @@ def process_json_to_csv(group_file, usergroup_file, appgroup_file, users_file, c
                     clipper_org_name = clipper_org_mapping.get(organization_id, "")
                     final_org_name = organization_name if organization_name else clipper_org_name
 
-                    if clipper_org_name:
+                    if final_org_name:
                         # Create a new row for each application in the group
                         for application in applications:
                             csv_row = {
@@ -107,7 +107,7 @@ def process_json_to_csv(group_file, usergroup_file, appgroup_file, users_file, c
                                 "Group ID": group_id,
                                 "Process Status": (item.get("ProcessStatus", "DONE") or "").strip(),
                                 "IDP Status": (item.get("IDPStatus", "ACTIVE") or "").strip(),
-                                "Organization": clipper_org_name,
+                                "Organization": final_org_name,
                                 "Application": application.strip(),
                                 "User": users.strip(),
                             }

@@ -51,21 +51,22 @@ def process_json_to_csv(json_file, csv_file, org_mapping, clipper_org_mapping, e
         user_data = [user_data]  
 
     columns = [
-        "First Name",
-        "Last Name",
-        "Description",
+        # "First Name",
+        # "Last Name",
+        # "Description",
         "Login name",
-        "E-mail address",
-        "Provider Type",
-        "Application Admin",
-        "Organization Admin",
-        "System Admin",
-        "Tenant Admin",
-        "User Admin",
-        "Organization",
-        "Group",
-        "Product",
-        "Status"
+        # "E-mail address",
+        # "Provider Type",
+        # "Application Admin",
+        # "Organization Admin",
+        # "System Admin",
+        # "Tenant Admin",
+        # "User Admin",
+        # "Organization",
+        # "Group",
+        # "Product",
+        # "Status",
+        "Id"
     ]
 
     with open(csv_file, 'w', newline='', encoding='utf-8') as csvfile:
@@ -109,10 +110,9 @@ def process_json_to_csv(json_file, csv_file, org_mapping, clipper_org_mapping, e
                         "Tenant Admin": "TenantAdministrator" in admin_roles_str,
                         "User Admin": "UserAdministrator" in admin_roles_str
                     }
-
                 # Convert groups to comma-separated string if needed
                 groups = ','.join(item.get("GroupIds", [])) if item.get("GroupIds") else ""
-
+                id = item.get("Id")
                 # Retrieve organization name using OrganizationId
                 organization_id = item.get("OrganizationId", "")
                 organization_name = org_mapping.get(organization_id, "")
@@ -122,28 +122,29 @@ def process_json_to_csv(json_file, csv_file, org_mapping, clipper_org_mapping, e
                 # Only write row if either organization_name or clipper_org_name is found
                 if clipper_org_name:
                     csv_row = {
-                        "First Name": first_name,
-                        "Last Name": last_name,
-                        "Description": (item.get("Description") or "").strip(),
-                        "Login name": login_name,
-                        "E-mail address": email,
-                        "Provider Type": "Federation",
-                        "Status": "ACTIVE" if item.get("IsActive") else "INACTIVE",
-                        "Product": "SDx MT Cloud",
-                        "Application Admin": admin_roles.get("Application Admin", False),
-                        "Organization Admin": admin_roles.get("Organization Admin", False),
-                        "System Admin": admin_roles.get("System Admin", False),
-                        "Tenant Admin": admin_roles.get("Tenant Admin", False),
-                        "User Admin": admin_roles.get("User Admin", False),
-                        "Organization": clipper_org_name,
-                        "Group": groups,
+                        # "First Name": first_name,
+                        # "Last Name": last_name,
+                        # "Description": (item.get("Description") or "").strip(),
+                        "Login name": "USR_" + login_name,
+                        # "E-mail address": email,
+                        # "Provider Type": "Federation",
+                        # "Status": "ACTIVE" if item.get("IsActive") else "INACTIVE",
+                        # "Product": "SDx MT Cloud",
+                        # "Application Admin": admin_roles.get("Application Admin", False),
+                        # "Organization Admin": admin_roles.get("Organization Admin", False),
+                        # "System Admin": admin_roles.get("System Admin", False),
+                        # "Tenant Admin": admin_roles.get("Tenant Admin", False),
+                        # "User Admin": admin_roles.get("User Admin", False),
+                        # "Organization": clipper_org_name,
+                        # "Group": groups,
+                        "Id": id
                     }
 
                     writer.writerow(csv_row)
 
 # File paths
 json_file = 'users.json'
-csv_file = 'users.csv'
+csv_file = 'users_with_id.csv'
 auth_server_file = 'authorizationservers.json'
 clipper_organizations = 'clipperOrgs.json'
 my_users_file = 'myUsers.json'

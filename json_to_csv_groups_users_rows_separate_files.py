@@ -34,7 +34,7 @@ def load_clipper_organization_mapping(clipper_orgs_file):
             clipper_org_mapping[organization_id] = organization_name  # Map organization ID to organization name
     return clipper_org_mapping
 
-def process_json_to_csv(group_file, usergroup_file, appgroup_file, users_file, csv_file, org_mapping, clipper_org_mapping):
+def process_json_to_csv(group_file, usergroup_file, appgroup_file, users_file, org_mapping, clipper_org_mapping):
     # Load JSON data
     grp_data = load_json(group_file)
     usergroup_data = load_json(usergroup_file)
@@ -76,52 +76,55 @@ def process_json_to_csv(group_file, usergroup_file, appgroup_file, users_file, c
         "User"
     ]
 
-    # Write to CSV
-    with open(csv_file, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=columns)
-        writer.writeheader()
+    # Process each group and export to a separate file
+    for item in grp_data:
+        if isinstance(item, dict):
+            organization_id = item.get("OrganizationId", "")
 
-        for item in grp_data:
-            if isinstance(item, dict):
-                organization_id = item.get("OrganizationId", "")
+            # Check if the organization ID length matches 36 characters
+            if len(organization_id) == 36:
+                group_id = item.get("Id", "")
+                applications = ', '.join(app_mapping.get(group_id, []))
 
-                # Check if the organization ID length matches 36 characters
-                if len(organization_id) == 36:
-                    group_id = item.get("Id", "")
-                    applications = app_mapping.get(group_id, [])
+                # Map user IDs to Login values
+                user_ids = user_mapping.get(group_id, [])
+                organization_name = org_mapping.get(organization_id, "")
+                clipper_org_name = clipper_org_mapping.get(organization_id, "")
+                final_org_name = organization_name if organization_name else clipper_org_name
 
-                    # Map user IDs to Login values
-                    user_ids = user_mapping.get(group_id, [])
-                    users = ','.join(filter(None, [user_login_mapping.get(user_id, "") for user_id in user_ids]))
+                if final_org_name:
+                    # Prepare the filename based on the group name
+                    group_name = item.get("Name", "unknown").replace(" ", "_")
+                    file_name = f'group-user-rel-{group_name}.csv'
 
-                    organization_name = org_mapping.get(organization_id, "")
-                    clipper_org_name = clipper_org_mapping.get(organization_id, "")
-                    final_org_name = organization_name if organization_name else clipper_org_name
+                    # Write to a CSV file for each group
+                    with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
+                        writer = csv.DictWriter(csvfile, fieldnames=columns)
+                        writer.writeheader()
 
-                    if clipper_org_name:
-                        # Create a new row for each application in the group
-                        for application in applications:
+                        # Create a new row for each user in the group
+                        for user_id in user_ids:
+                            user_login = user_login_mapping.get(user_id, "")
+
                             csv_row = {
                                 "Name": (item.get("Name") or "").strip(),
                                 "Description": (item.get("Description") or "").strip(),
                                 "Group ID": group_id,
                                 "Process Status": (item.get("ProcessStatus", "DONE") or "").strip(),
                                 "IDP Status": (item.get("IDPStatus", "ACTIVE") or "").strip(),
-                                "Organization": clipper_org_name,
-                                "Application": application.strip(),
-                                "User": users.strip(),
+                                "Organization": final_org_name,
+                                "Application": applications.strip(),
+                                "User": user_login.strip(),
                             }
 
-                            # Ensure only non-empty values are written
-                            if any(value for key, value in csv_row.items() if key != "Group ID"):
-                                writer.writerow(csv_row)
+                            # Write the row to the group's CSV file
+                            writer.writerow(csv_row)
 
 # File paths
 group_file = 'groups.json'
 usergroup_file = 'usergroupassignments.json'
 appgroup_file = 'applicationgroupassignments.json'
 users_file = 'users.json'
-csv_file = 'groups.csv'
 
 auth_server_file = 'authorizationservers.json'
 clipper_organizations = 'clipperOrgs.json'
@@ -131,4 +134,4 @@ org_mapping = load_organization_mapping(auth_server_file)
 clipper_orgs_mapping = load_clipper_organization_mapping(clipper_organizations)
 
 # Run the function
-process_json_to_csv(group_file, usergroup_file, appgroup_file, users_file, csv_file, org_mapping, clipper_orgs_mapping)
+process_json_to_csv(group_file, usergroup_file, appgroup_file, users_file, org_mapping, clipper_orgs_mapping)
